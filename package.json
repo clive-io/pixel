@@ -3,6 +3,7 @@
     "start": "NODE_ENV=production coffee index.coffee"
   },
   "dependencies": {
-    "express": "^4.16.1"
+    "express": "^4.16.1",
+    "request": "^2.83.0"
   }
 }

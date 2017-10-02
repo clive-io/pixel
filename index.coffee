@@ -1,16 +1,18 @@
-const app = require('express')()
-
-
+app = require('express')()
 request = require 'request'
+
+function stringFromAIPData(){
+
+}
 
 cache = {}
 app.all '/:id', (req, res) ->
-  console.log req.params.id
   res.sendFile "pixel.gif", {root: __dirname}
   if not cache[req.ip]
     # If not cached, we have to fetch the text for the thing to display, using our API
     cache[req.ip] = {n: 0, text: "", timeout: -1}
     request.get 'http://ip-api.com/json/' + req.ip, (api_err, api_res, api_data) ->
+      console.log(api_data)
       try
         api_data = JSON.parse api_data
       catch json_err
@@ -21,12 +23,19 @@ app.all '/:id', (req, res) ->
         ' ISP ' + api_data?.isp +
         (if api_data?.org != api_data?.isp then ' ORG ' + api_data?.org else '') +
         ' FROM ' + api_data?.city + ', ' + api_data?.regionName + ', ' + api_data?.countryCode + '.'
+
+      cache[req.ip].n++
+      clearTimeout cache[req.ip].timeout
+      cache[req.ip].timeout = setTimeout () ->
+        console.log req.params.id + "R*" + cache[req.ip].n + " " + cache[req.ip].text
+        cache[req.ip].n = 0
+      , 10000
   
   # We already have it, just display it after a delay of 10 seconds to wait for any multi requests
   cache[req.ip].n++
   clearTimeout cache[req.ip].timeout
   cache[req.ip].timeout = setTimeout () ->
-    console.log "R*" + cache[req.ip].n + " " + cache[req.ip].text
+    console.log req.params.id + "R*" + cache[req.ip].n + " " + cache[req.ip].text
     cache[req.ip].n = 0
   , 10000
 
@@ -34,6 +43,6 @@ app.all '*', (req, res) ->
   console.error("Accessed main page")
   res.sendStatus(200)
 
-app.listen(process.env.PORT)
+app.listen(process.env.PORT || 3040)
 
 console.log("Now serving pixels.")
