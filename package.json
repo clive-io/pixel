@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "start": "node index.js"
+    "start": "NODE_ENV=production coffee index.coffee"
   },
   "dependencies": {
     "express": "^4.16.1"
