@@ -2,6 +2,7 @@ app = require('express')()
 request = require 'request'
 
 app.set 'trust proxy', 'loopback'
+app.use require('cloudflare-middleware')()
 app.use require('helmet')()
 
 app.all '/', (req, res) ->
