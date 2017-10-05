@@ -1,6 +1,8 @@
 app = require('express')()
 request = require 'request'
 
+app.set 'trust proxy', 'loopback'
+
 app.all '/', (req, res) ->
   res.sendStatus(200)
 app.all '/favicon.ico', (req, res) ->
