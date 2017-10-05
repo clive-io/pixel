@@ -1,47 +1,53 @@
 app = require('express')()
 request = require 'request'
 
-function stringFromAIPData(){
+app.all '/', (req, res) ->
+  res.sendStatus(200)
+app.all '/favicon.ico', (req, res) ->
+  res.sendStatus(404)
 
-}
+apicache = {}
+ipreport = (ip) ->
+  return new Promise (res, rej) ->
+    if not apicache[ip]?
+      # If not cached, we have to fetch the text for the thing to display, using our API
+      request.get 'http://ip-api.com/json/' + ip, (api_err, api_res, api_data) ->
+        try
+          api_data = JSON.parse api_data
+        catch json_err
+          api_err = "JSON failed to parse: " + json_err
+        if api_err or api_res.statusCode != 200 then apicache[ip] = ip + ', api error (status code ' + api_res.statusCode + '): ' + api_err
+        else if api_data?.status != 'success' then apicache[ip] = ip + ', lookup error: ' + api_data?.message + '.'
+        else apicache[ip] = ip + ',' +
+          ' ISP ' + api_data?.isp +
+          (if api_data?.org != api_data?.isp then ' ORG ' + api_data?.org else '') +
+          ' FROM ' + api_data?.city + ', ' + api_data?.regionName + ', ' + api_data?.countryCode + '.'
+        res(apicache[ip])
+    else
+      res(apicache[ip])
 
-cache = {}
+outbuf = {}
 app.all '/:id', (req, res) ->
+  # From https://github.com/tblobaum/pixel-tracker
+  # Cross-confirmed with http://proger.i-forge.net/%D0%9A%D0%BE%D0%BC%D0%BF%D1%8C%D1%8E%D1%82%D0%B5%D1%80/[20121112]%20The%20smallest%20transparent%20pixel.html
   res.sendFile "pixel.gif", {root: __dirname}
-  if not cache[req.ip]
-    # If not cached, we have to fetch the text for the thing to display, using our API
-    cache[req.ip] = {n: 0, text: "", timeout: -1}
-    request.get 'http://ip-api.com/json/' + req.ip, (api_err, api_res, api_data) ->
-      console.log(api_data)
-      try
-        api_data = JSON.parse api_data
-      catch json_err
-        return console.error json_err
-      if api_err or api_res.statusCode != 200 then cache[req.ip].text = req.ip + ', lookup error.'
-      else if api_data?.status != 'success' then cache[req.ip].text = req.ip + ', lookup error: ' + api_data?.message + '.'
-      else cache[req.ip].text = req.ip + ',' +
-        ' ISP ' + api_data?.isp +
-        (if api_data?.org != api_data?.isp then ' ORG ' + api_data?.org else '') +
-        ' FROM ' + api_data?.city + ', ' + api_data?.regionName + ', ' + api_data?.countryCode + '.'
-
-      cache[req.ip].n++
-      clearTimeout cache[req.ip].timeout
-      cache[req.ip].timeout = setTimeout () ->
-        console.log req.params.id + "R*" + cache[req.ip].n + " " + cache[req.ip].text
-        cache[req.ip].n = 0
-      , 10000
   
-  # We already have it, just display it after a delay of 10 seconds to wait for any multi requests
-  cache[req.ip].n++
-  clearTimeout cache[req.ip].timeout
-  cache[req.ip].timeout = setTimeout () ->
-    console.log req.params.id + "R*" + cache[req.ip].n + " " + cache[req.ip].text
-    cache[req.ip].n = 0
+  # Display it after a delay of 10 seconds to wait for any multi requests
+  key = req.ip + '/' + req.params.id
+  if not outbuf[key]?
+    outbuf[key] = {n: 0, timeout: null}
+  if outbuf[key].timeout?
+    clearTimeout outbuf[key].timeout
+  outbuf[key].n++
+  outbuf[key].timeout = setTimeout () ->
+    n = outbuf[key].n
+    delete outbuf[key]
+    ipreport(req.ip).then (text) ->
+      console.log req.params.id + "*" + n + " from " + text
   , 10000
 
 app.all '*', (req, res) ->
-  console.error("Accessed main page")
-  res.sendStatus(200)
+  res.sendStatus(404)
 
 app.listen(process.env.PORT || 3040)
 
