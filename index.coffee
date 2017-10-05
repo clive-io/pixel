@@ -3,6 +3,8 @@ request = require 'request'
 cloudflareIp = require 'cloudflare-ip'
 
 app.set 'trust proxy', (ip) ->
+  if ip.startsWith '::ffff:'
+    ip = ip.substr 7
   ip == '127.0.0.1' || cloudflareIp(ip)
 app.use require('helmet')()
 
