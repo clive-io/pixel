@@ -3,7 +3,7 @@
     "start": "NODE_ENV=production coffee index.coffee"
   },
   "dependencies": {
-    "cloudflare-middleware": "^1.0.1",
+    "cloudflare-middleware": "^1.0.2",
     "express": "^4.16.1",
     "helmet": "^3.8.2",
     "request": "^2.83.0"
