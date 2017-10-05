@@ -1,8 +1,9 @@
 app = require('express')()
 request = require 'request'
+cloudflareIp = require 'cloudflare-ip'
 
-app.set 'trust proxy', 'loopback'
-app.use require('cloudflare-middleware')()
+app.set 'trust proxy', (ip) ->
+  ip == '127.0.0.1' || cloudflareIp(ip)
 app.use require('helmet')()
 
 app.all '/', (req, res) ->
